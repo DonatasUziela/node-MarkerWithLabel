@@ -332,7 +332,7 @@ module.exports = function(gMapsApi) {
 
     // Remove event listeners:
     if (this.listeners_ && this.listeners_.length) {
-        for (i = 0, len = this.listeners_.length; i < len; i++) {
+        for (i = 0; i < this.listeners_.length; i++) {
             gMapsApi.event.removeListener(this.listeners_[ i ]);
         }
     }
