@@ -71,17 +71,6 @@ module.exports = function(gMapsApi) {
     this.labelDiv_ = document.createElement("div");
     this.labelDiv_.style.cssText = "position: absolute; overflow: hidden;";
 
-    // Set up the DIV for handling mouse events in the label. This DIV forms a transparent veil
-    // in the "overlayMouseTarget" pane, a veil that covers just the label. This is done so that
-    // events can be captured even if the label is in the shadow of a google.maps.InfoWindow.
-    // Code is included here to ensure the veil is always exactly the same size as the label.
-    this.eventDiv_ = document.createElement("div");
-    this.eventDiv_.style.cssText = this.labelDiv_.style.cssText;
-
-    // This is needed for proper behavior on MSIE:
-    this.eventDiv_.addEventListener('selectstart', function() { return false; });
-    this.eventDiv_.addEventListener('dragstart', function() { return false; });
-
     // Get the DIV for the "X" to be displayed when the marker is raised.
     this.crossDiv_ = MarkerLabel_.getSharedCross(crossURL);
   }
@@ -142,8 +131,7 @@ module.exports = function(gMapsApi) {
       me.marker_.setAnimation(null);
     };
 
-    this.getPanes().markerLayer.appendChild(this.labelDiv_);
-    this.getPanes().overlayMouseTarget.appendChild(this.eventDiv_);
+    this.getPanes().overlayMouseTarget.appendChild(this.labelDiv_);
     // One cross is shared with all markers, so only add it once:
     if (typeof MarkerLabel_.getSharedCross.processed === "undefined") {
       this.getPanes().markerLayer.appendChild(this.crossDiv_);
@@ -151,19 +139,19 @@ module.exports = function(gMapsApi) {
     }
 
     this.listeners_ = [
-      gMapsApi.event.addDomListener(this.eventDiv_, "mouseover", function (e) {
+      gMapsApi.event.addDomListener(this.labelDiv_, "mouseover", function (e) {
         if (me.marker_.getDraggable() || me.marker_.getClickable()) {
           this.style.cursor = "pointer";
           gMapsApi.event.trigger(me.marker_, "mouseover", e);
         }
       }),
-      gMapsApi.event.addDomListener(this.eventDiv_, "mouseout", function (e) {
+      gMapsApi.event.addDomListener(this.labelDiv_, "mouseout", function (e) {
         if ((me.marker_.getDraggable() || me.marker_.getClickable()) && !cDraggingLabel) {
           this.style.cursor = me.marker_.getCursor();
           gMapsApi.event.trigger(me.marker_, "mouseout", e);
         }
       }),
-      gMapsApi.event.addDomListener(this.eventDiv_, "mousedown", function (e) {
+      gMapsApi.event.addDomListener(this.labelDiv_, "mousedown", function(e) {
         cDraggingLabel = false;
         if (me.marker_.getDraggable()) {
           cMouseIsDown = true;
@@ -178,7 +166,7 @@ module.exports = function(gMapsApi) {
         var position;
         if (cMouseIsDown) {
           cMouseIsDown = false;
-          me.eventDiv_.style.cursor = "pointer";
+          me.labelDiv_.style.cursor = "pointer";
           gMapsApi.event.trigger(me.marker_, "mouseup", mEvent);
         }
         if (cDraggingLabel) {
@@ -201,7 +189,7 @@ module.exports = function(gMapsApi) {
           gMapsApi.event.trigger(me.marker_, "dragend", mEvent);
         }
       }),
-      gMapsApi.event.addListener(me.marker_.getMap(), "mousemove", function (mEvent) {
+      gMapsApi.event.addListener(me.marker_.getMap(), "mousemove", function(mEvent) {
         var position;
         if (cMouseIsDown) {
           if (cDraggingLabel) {
@@ -215,9 +203,6 @@ module.exports = function(gMapsApi) {
               position.y -= cRaiseOffset;
             }
             me.marker_.setPosition(me.getProjection().fromDivPixelToLatLng(position));
-            if (cRaiseEnabled) { // Don't raise the veil; this hack needed to make MSIE act properly
-              me.eventDiv_.style.top = (position.y + cRaiseOffset) + "px";
-            }
             gMapsApi.event.trigger(me.marker_, "drag", mEvent);
           } else {
             // Calculate offsets from the click point to the marker position:
@@ -244,7 +229,7 @@ module.exports = function(gMapsApi) {
           }
         }
       }),
-      gMapsApi.event.addDomListener(this.eventDiv_, "click", function (e) {
+      gMapsApi.event.addDomListener(this.labelDiv_, "click", function (e) {
         if (me.marker_.getDraggable() || me.marker_.getClickable()) {
           if (cIgnoreClick) { // Ignore the click reported when a label drag ends
             cIgnoreClick = false;
@@ -254,7 +239,7 @@ module.exports = function(gMapsApi) {
           }
         }
       }),
-      gMapsApi.event.addDomListener(this.eventDiv_, "dblclick", function (e) {
+      gMapsApi.event.addDomListener(this.labelDiv_, "dblclick", function (e) {
         if (me.marker_.getDraggable() || me.marker_.getClickable()) {
           gMapsApi.event.trigger(me.marker_, "dblclick", e);
           cAbortEvent(e); // Prevent map zoom when double-clicking on a label
@@ -326,10 +311,6 @@ module.exports = function(gMapsApi) {
         this.labelDiv_.parentNode.removeChild(this.labelDiv_);
     }
 
-    if (this.eventDiv_ && this.eventDiv_.parentNode) {
-        this.eventDiv_.parentNode.removeChild(this.eventDiv_);
-    }
-
     // Remove event listeners:
     if (this.listeners_ && this.listeners_.length) {
         for (i = 0; i < this.listeners_.length; i++) {
@@ -357,20 +338,13 @@ module.exports = function(gMapsApi) {
     var content = this.marker_.get("labelContent");
     if (typeof content.nodeType === "undefined") {
       this.labelDiv_.innerHTML = content;
-      this.eventDiv_.innerHTML = this.labelDiv_.innerHTML;
     } else {
       // Remove current content
       while (this.labelDiv_.lastChild) {
         this.labelDiv_.removeChild(this.labelDiv_.lastChild);
       }
 
-      while (this.eventDiv_.lastChild) {
-        this.eventDiv_.removeChild(this.eventDiv_.lastChild);
-      }
-
       this.labelDiv_.appendChild(content);
-      content = content.cloneNode(true);
-      this.eventDiv_.appendChild(content);
     }
   };
 
@@ -380,7 +354,7 @@ module.exports = function(gMapsApi) {
    * @private
    */
   MarkerLabel_.prototype.setTitle = function () {
-    this.eventDiv_.title = this.marker_.getTitle() || "";
+    this.labelDiv_.title = this.marker_.getTitle() || "";
   };
 
   /**
@@ -393,17 +367,14 @@ module.exports = function(gMapsApi) {
 
     // Apply style values from the style sheet defined in the labelClass parameter:
     this.labelDiv_.className = this.marker_.get("labelClass");
-    this.eventDiv_.className = this.labelDiv_.className;
 
     // Clear existing inline style values:
     this.labelDiv_.style.cssText = "";
-    this.eventDiv_.style.cssText = "";
     // Apply style values defined in the labelStyle parameter:
     labelStyle = this.marker_.get("labelStyle");
     for (i in labelStyle) {
       if (labelStyle.hasOwnProperty(i)) {
         this.labelDiv_.style[i] = labelStyle[i];
-        this.eventDiv_.style[i] = labelStyle[i];
       }
     }
     this.setMandatoryStyles();
@@ -423,12 +394,6 @@ module.exports = function(gMapsApi) {
       this.labelDiv_.style.filter = "alpha(opacity=" + (this.labelDiv_.style.opacity * 100) + ")";
     }
 
-    this.eventDiv_.style.position = this.labelDiv_.style.position;
-    this.eventDiv_.style.overflow = this.labelDiv_.style.overflow;
-    this.eventDiv_.style.opacity = 0.01; // Don't use 0; DIV won't be clickable on MSIE
-    this.eventDiv_.style.MsFilter = "\"progid:DXImageTransform.Microsoft.Alpha(opacity=1)\"";
-    this.eventDiv_.style.filter = "alpha(opacity=1)"; // For MSIE
-
     this.setAnchor();
     this.setPosition(); // This also updates z-index, if necessary.
     this.setVisible();
@@ -442,8 +407,6 @@ module.exports = function(gMapsApi) {
     var anchor = this.marker_.get("labelAnchor");
     this.labelDiv_.style.marginLeft = -anchor.x + "px";
     this.labelDiv_.style.marginTop = -anchor.y + "px";
-    this.eventDiv_.style.marginLeft = -anchor.x + "px";
-    this.eventDiv_.style.marginTop = -anchor.y + "px";
   };
 
   /**
@@ -457,8 +420,6 @@ module.exports = function(gMapsApi) {
     }
     this.labelDiv_.style.left = Math.round(position.x) + "px";
     this.labelDiv_.style.top = Math.round(position.y - yOffset) + "px";
-    this.eventDiv_.style.left = this.labelDiv_.style.left;
-    this.eventDiv_.style.top = this.labelDiv_.style.top;
 
     this.setZIndex();
   };
@@ -473,10 +434,8 @@ module.exports = function(gMapsApi) {
     var zAdjust = (this.marker_.get("labelInBackground") ? -1 : +1);
     if (typeof this.marker_.getZIndex() === "undefined") {
       this.labelDiv_.style.zIndex = parseInt(this.labelDiv_.style.top, 10) + zAdjust;
-      this.eventDiv_.style.zIndex = this.labelDiv_.style.zIndex;
     } else {
       this.labelDiv_.style.zIndex = this.marker_.getZIndex() + zAdjust;
-      this.eventDiv_.style.zIndex = this.labelDiv_.style.zIndex;
     }
   };
 
@@ -491,7 +450,6 @@ module.exports = function(gMapsApi) {
     } else {
       this.labelDiv_.style.display = "none";
     }
-    this.eventDiv_.style.display = this.labelDiv_.style.display;
   };
 
   /**
