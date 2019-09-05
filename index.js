@@ -432,10 +432,8 @@ module.exports = function(gMapsApi) {
    */
   MarkerLabel_.prototype.setZIndex = function () {
     var zAdjust = (this.marker_.get("labelInBackground") ? -1 : +1);
-    if (typeof this.marker_.getZIndex() === "undefined") {
-      this.labelDiv_.style.zIndex = parseInt(this.labelDiv_.style.top, 10) + zAdjust;
-    } else {
-      this.labelDiv_.style.zIndex = this.marker_.getZIndex() + zAdjust;
+    if (typeof this.marker_.getZIndex() !== "undefined") {
+        this.labelDiv_.style.zIndex = this.marker_.getZIndex() + zAdjust;
     }
   };
 
