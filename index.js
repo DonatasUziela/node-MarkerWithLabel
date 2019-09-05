@@ -297,6 +297,8 @@ module.exports = function(gMapsApi) {
         me.setStyles();
       })
     ];
+
+    gMapsApi.OverlayView.preventMapHitsFrom(this.labelDiv_);
   };
 
   /**
